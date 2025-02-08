@@ -3,20 +3,12 @@ name: Deploy Environment
 on:
   workflow_dispatch:
     inputs:
-      ls6_global_00:
-        description: 'LS6 Global - 00'
+      ls6_accounting_komisk:
+        description: 'LS6 Accounting - Komisk'
         type: boolean
         default: false
-      ls6_global_01:
-        description: 'LS6 Global - 01'
-        type: boolean
-        default: false
-      prod_global_00:
-        description: 'Production Global - 00'
-        type: boolean
-        default: false
-      prod_global_01:
-        description: 'Production Global - 01'
+      ls6_global:
+        description: 'LS6 Global'
         type: boolean
         default: false
 
@@ -32,10 +24,8 @@ jobs:
         run: |
           $environments = @()
           $envMap = @{
-            "ls6_global_00" = "LS6 Global - 00"
-            "ls6_global_01" = "LS6 Global - 01"
-            "prod_global_00" = "Production Global - 00"
-            "prod_global_01" = "Production Global - 01"
+            "ls6_accounting_komisk" = "LS6 Accounting - Komisk"
+            "ls6_global" = "LS6 Global"
           }
           foreach ($key in $envMap.Keys) {
               $envVariableName = $key.ToUpper()
@@ -54,10 +44,8 @@ jobs:
           }
           Write-Output "matrix=$matrixJson" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
     env:
-      ls6_global_00: ${{ inputs.ls6_global_00 }}
-      ls6_global_01: ${{ inputs.ls6_global_01 }}
-      prod_global_00: ${{ inputs.prod_global_00 }}
-      prod_global_01: ${{ inputs.prod_global_01 }}
+      ls6_accounting_komisk: ${{ inputs.ls6_accounting_komisk }}
+      ls6_global: ${{ inputs.ls6_global }}
 
   deploy:
     needs: create-environment-matrix
@@ -97,9 +85,3 @@ jobs:
         run: |
           . .\config.ps1
           ./script1.ps1
-
-      - name: Run PowerShell Script 2
-        shell: pwsh
-        run: |
-          . .\config.ps1
-          ./script2.ps1
