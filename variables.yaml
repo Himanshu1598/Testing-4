@@ -14,3 +14,6 @@ library_sets:
       "LS6 Global":
         value: 'XOAWSUAT\svc_octopus_deploy'
     value: "DBPro"  # ✅ Default value (used when no environment is selected)
+
+  SqlPackagePath:
+    value: 'C:\Program Files\Microsoft SQL Server\150\DAC\bin\SqlPackage.exe'
