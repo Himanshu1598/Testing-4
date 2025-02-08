@@ -10,7 +10,7 @@ library_sets:
   ServiceAccountUserName:
     environments:
       "LS6 Accounting - Komisk":
-        value: 'XOAWSUAT\svc_octopus_deploy'
+        value: "XOAWSUAT\svc_octopus_deploy"
       "LS6 Global":
-        value: 'XOAWSUAT\svc_octopus_deploy'
+        value: "XOAWSUAT\svc_octopus_deploy"
     value: "DBPro"  # ✅ Default value (used when no environment is selected)
