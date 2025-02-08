@@ -69,9 +69,9 @@ foreach ($key in $variables.Keys) {
         }
     }
 
-    # **Preserve values with backslashes correctly**
-    if ($value -match '\\') {
-        $value = $value -replace '\\', '\\'  # Escape backslashes correctly
+    # **Ensure PowerShell does NOT double-escape backslashes**
+    if ($value -match '\\' -and -not $value -match '\\\\') {
+        $value = $value -replace '\\\\', '\'
     }
 
     # **Only add valid values to consolidated variables**
@@ -91,11 +91,11 @@ $configFilePath = ".\config.ps1"
 $consolidatedVars.GetEnumerator() | ForEach-Object {
     $key = $_.Key
     $value = $_.Value
-    if (![string]::IsNullOrWhiteSpace($key) -and (![string]::IsNullOrWhiteSpace($value))) {
-        "Set-Variable -Name '${key}' -Value '${value}'"
-    } else {
-        Write-Output "⚠️ Skipping invalid entry: Key='${key}', Value='${value}'"
-    }
+
+    # Ensure backslashes are preserved correctly
+    $value = $value -replace '\\\\', '\'
+
+    "Set-Variable -Name '${key}' -Value '${value}'"
 } | Out-File -FilePath $configFilePath -Encoding UTF8
 
 Write-Output "✅ Variables successfully written to ${configFilePath}."
