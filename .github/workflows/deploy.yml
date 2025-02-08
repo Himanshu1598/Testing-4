@@ -3,12 +3,20 @@ name: Deploy Environment
 on:
   workflow_dispatch:
     inputs:
-      ls6_accounting_komisk:
-        description: 'LS6 Accounting - Komisk'
+      ls6_global_00:
+        description: 'LS6 Global - 00'
         type: boolean
         default: false
-      ls6_global:
-        description: 'LS6 Global'
+      ls6_global_01:
+        description: 'LS6 Global - 01'
+        type: boolean
+        default: false
+      prod_global_00:
+        description: 'Production Global - 00'
+        type: boolean
+        default: false
+      prod_global_01:
+        description: 'Production Global - 01'
         type: boolean
         default: false
 
@@ -24,17 +32,18 @@ jobs:
         run: |
           $environments = @()
           $envMap = @{
-            "LS6_ACCOUNTING_KOMISK" = "LS6 Accounting - Komisk"
-            "LS6_GLOBAL" = "LS6 Global"
+            "ls6_global_00" = "LS6 Global - 00"
+            "ls6_global_01" = "LS6 Global - 01"
+            "prod_global_00" = "Production Global - 00"
+            "prod_global_01" = "Production Global - 01"
           }
-          
           foreach ($key in $envMap.Keys) {
-              $inputValue = [System.Environment]::GetEnvironmentVariable($key)
+              $envVariableName = $key.ToUpper()
+              $inputValue = (Get-Item -Path "Env:\$envVariableName").Value
               if ($inputValue -eq 'true') {
                   $environments += $envMap[$key]
               }
           }
-          
           if ($environments.Count -eq 1) {
               $matrixJson = @{ "include" = @(@{ "environment" = $environments[0] }) } | ConvertTo-Json -Depth 2 -Compress
           } elseif ($environments.Count -gt 1) {
@@ -43,11 +52,12 @@ jobs:
               Write-Output "No environments selected. Exiting."
               exit 1
           }
-          
           Write-Output "matrix=$matrixJson" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-        env:
-          LS6_ACCOUNTING_KOMISK: ${{ inputs.ls6_accounting_komisk }}
-          LS6_GLOBAL: ${{ inputs.ls6_global }}
+    env:
+      ls6_global_00: ${{ inputs.ls6_global_00 }}
+      ls6_global_01: ${{ inputs.ls6_global_01 }}
+      prod_global_00: ${{ inputs.prod_global_00 }}
+      prod_global_01: ${{ inputs.prod_global_01 }}
 
   deploy:
     needs: create-environment-matrix
@@ -61,6 +71,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
+      - name: Set up PowerShell
+        uses: actions/setup-powershell@v3
+        with:
+          pwsh-version: '7.2'
 
       - name: Install PowerShell-YAML and AWS Tools
         shell: pwsh
@@ -82,3 +97,9 @@ jobs:
         run: |
           . .\config.ps1
           ./script1.ps1
+
+      - name: Run PowerShell Script 2
+        shell: pwsh
+        run: |
+          . .\config.ps1
+          ./script2.ps1
