@@ -24,16 +24,17 @@ jobs:
         run: |
           $environments = @()
           $envMap = @{
-            "ls6_accounting_komisk" = "LS6 Accounting - Komisk"
-            "ls6_global" = "LS6 Global"
+            "LS6_ACCOUNTING_KOMISK" = "LS6 Accounting - Komisk"
+            "LS6_GLOBAL" = "LS6 Global"
           }
+          
           foreach ($key in $envMap.Keys) {
-              $envVariableName = $key.ToUpper()
-              $inputValue = (Get-Item -Path "Env:\$envVariableName").Value
+              $inputValue = [System.Environment]::GetEnvironmentVariable($key)
               if ($inputValue -eq 'true') {
                   $environments += $envMap[$key]
               }
           }
+          
           if ($environments.Count -eq 1) {
               $matrixJson = @{ "include" = @(@{ "environment" = $environments[0] }) } | ConvertTo-Json -Depth 2 -Compress
           } elseif ($environments.Count -gt 1) {
@@ -42,10 +43,11 @@ jobs:
               Write-Output "No environments selected. Exiting."
               exit 1
           }
+          
           Write-Output "matrix=$matrixJson" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-    env:
-      ls6_accounting_komisk: ${{ inputs.ls6_accounting_komisk }}
-      ls6_global: ${{ inputs.ls6_global }}
+        env:
+          LS6_ACCOUNTING_KOMISK: ${{ inputs.ls6_accounting_komisk }}
+          LS6_GLOBAL: ${{ inputs.ls6_global }}
 
   deploy:
     needs: create-environment-matrix
@@ -59,11 +61,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-
-      - name: Set up PowerShell
-        uses: actions/setup-powershell@v3
-        with:
-          pwsh-version: '7.2'
 
       - name: Install PowerShell-YAML and AWS Tools
         shell: pwsh
