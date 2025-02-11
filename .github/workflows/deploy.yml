@@ -77,8 +77,36 @@ jobs:
         run: |
           ./generate-config.ps1 -environment "${{ matrix.environment }}"
 
-      - name: Run PowerShell Script 1
+      - name: Run Deploy Report Action
         shell: pwsh
         run: |
+          "Set-Variable -Name 'Action' -Value 'DeployReport'" | Out-File -FilePath .\config.ps1
+          Write-Output "===== Contents of config.ps1 BEFORE execution ====="
+          Get-Content .\config.ps1
+          Write-Output "=================================================="
           . .\config.ps1
+          Write-Output "Running script1.ps1 with Action=DeployReport"
           ./script1.ps1
+
+      - name: Run Script Action
+        shell: pwsh
+        run: |
+          "Set-Variable -Name 'Action' -Value 'Script'" | Out-File -FilePath .\config.ps1
+          Write-Output "===== Contents of config.ps1 BEFORE execution ====="
+          Get-Content .\config.ps1
+          Write-Output "=================================================="
+          . .\config.ps1
+          Write-Output "Running script1.ps1 with Action=Script"
+          ./script1.ps1
+
+      - name: Run Publish Action
+        shell: pwsh
+        run: |
+          "Set-Variable -Name 'Action' -Value 'Publish'" | Out-File -FilePath .\config.ps1
+          Write-Output "===== Contents of config.ps1 BEFORE execution ====="
+          Get-Content .\config.ps1
+          Write-Output "=================================================="
+          . .\config.ps1
+          Write-Output "Running script1.ps1 with Action=Publish"
+          ./script1.ps1
+
