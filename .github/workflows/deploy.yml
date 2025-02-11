@@ -80,7 +80,7 @@ jobs:
       - name: Run Deploy Report Action
         shell: pwsh
         run: |
-          "Set-Variable -Name 'Action' -Value 'DeployReport'" | Out-File -FilePath .\config.ps1
+          "Set-Variable -Name 'Action' -Value 'DeployReport'" | Out-File -Append -FilePath .\config.ps1
           Write-Output "===== Contents of config.ps1 BEFORE execution ====="
           Get-Content .\config.ps1
           Write-Output "=================================================="
@@ -91,7 +91,7 @@ jobs:
       - name: Run Script Action
         shell: pwsh
         run: |
-          "Set-Variable -Name 'Action' -Value 'Script'" | Out-File -FilePath .\config.ps1
+          "Set-Variable -Name 'Action' -Value 'Script'" | Out-File -Append -FilePath .\config.ps1
           Write-Output "===== Contents of config.ps1 BEFORE execution ====="
           Get-Content .\config.ps1
           Write-Output "=================================================="
@@ -102,7 +102,7 @@ jobs:
       - name: Run Publish Action
         shell: pwsh
         run: |
-          "Set-Variable -Name 'Action' -Value 'Publish'" | Out-File -FilePath .\config.ps1
+          "Set-Variable -Name 'Action' -Value 'Publish'" | Out-File -Append -FilePath .\config.ps1
           Write-Output "===== Contents of config.ps1 BEFORE execution ====="
           Get-Content .\config.ps1
           Write-Output "=================================================="
