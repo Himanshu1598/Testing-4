@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "2.2",
+  "description": "Deploy DACPAC to a SQL Server database using SQLPackage.exe",
+  "parameters": {
+    "Action": { "type": "String", "description": "SQLPackage action (Publish, Script, etc.)" },
+    "DacpacFilePath": { "type": "String", "description": "Full path to the DACPAC file" },
+    "PublishProfileFilePath": { "type": "String", "description": "Path to the publish profile file" },
+    "OutputFilePath": { "type": "String", "description": "Path to save deployment output" },
+    "SqlCmdVariables": { "type": "String", "description": "SQLCMD variables for deployment" },
+    "SqlPackageProperties": { "type": "String", "description": "SQLPackage properties" },
+    "SqlPackageParameters": { "type": "String", "description": "SQLPackage parameters" },
+    "ConnectionString": { "type": "String", "description": "Database connection string" }
+  },
+  "mainSteps": [
+    {
+      "action": "aws:runPowerShellScript",
+      "name": "DeployDacpac",
+      "inputs": {
+        "runCommand": [
+          "param(",
+          "    [string]$Action,",
+          "    [string]$DacpacFilePath,",
+          "    [string]$PublishProfileFilePath,",
+          "    [string]$OutputFilePath,",
+          "    [string]$SqlCmdVariables,",
+          "    [string]$SqlPackageProperties,",
+          "    [string]$SqlPackageParameters,",
+          "    [string]$ConnectionString",
+          ")",
+          "$SqlPackagePath = 'C:\\Program Files\\Microsoft SQL Server\\160\\DAC\\bin\\SqlPackage.exe'",
+          "$sqlPackageParams = @{",
+          "    Action = $Action",
+          "    DacpacFilePath = $DacpacFilePath",
+          "    PublishProfileFilePath = $PublishProfileFilePath",
+          "    OutputFilePath = $OutputFilePath",
+          "    SqlCmdVariables = $SqlCmdVariables",
+          "    SqlPackageProperties = $SqlPackageProperties",
+          "    SqlPackageParameters = $SqlPackageParameters",
+          "    ConnectionString = $ConnectionString",
+          "    Verbose = $true",
+          "    ErrorAction ='Stop'",
+          "}",
+          "Write-Output 'Starting DACPAC deployment with the following parameters:'",
+          "Write-Output $sqlPackageParams",
+          "Start-Process -FilePath $SqlPackagePath -ArgumentList '/Action:' + $Action, '/SourceFile:' + $DacpacFilePath, '/TargetConnectionString:' + $ConnectionString, '/p:BlockOnPossibleDataLoss=False' -NoNewWindow -Wait",
+          "if ($?) { Write-Output 'DACPAC deployment succeeded!' } else { Write-Output 'DACPAC deployment failed!' }"
+        ]
+      }
+    }
+  ]
+}
