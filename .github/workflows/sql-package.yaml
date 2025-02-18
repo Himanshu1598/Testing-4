@@ -1,0 +1,33 @@
+name: Download SQLPackage on Windows Runner
+
+on:
+  workflow_dispatch: # Allows manual execution from GitHub Actions UI
+
+jobs:
+  download-sqlpackage:
+    runs-on: windows-latest
+
+    steps:
+      - name: Display Runner Information
+        run: |
+          echo "Running on $(Get-ComputerInfo | Select-Object -ExpandProperty CsName)"
+          echo "Current User: $(whoami)"
+
+      - name: Download SQLPackage.exe
+        run: |
+          $DownloadUrl = "https://aka.ms/sqlpackage-windows"
+          $DestinationPath = "C:\sqlpackage.zip"
+          Invoke-WebRequest -Uri $DownloadUrl -OutFile $DestinationPath
+        shell: pwsh
+
+      - name: Extract SQLPackage.zip
+        run: |
+          $ExtractPath = "C:\sqlpackage"
+          Expand-Archive -Path "C:\sqlpackage.zip" -DestinationPath $ExtractPath -Force
+          echo "SQLPackage extracted to: $ExtractPath"
+        shell: pwsh
+
+      - name: Show Downloaded SQLPackage Path
+        run: |
+          Get-ChildItem -Path "C:\sqlpackage" -Recurse
+        shell: pwsh
