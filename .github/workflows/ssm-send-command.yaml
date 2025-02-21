@@ -1,0 +1,48 @@
+name: SSM Send Command and Output Testing
+
+on:
+  push:  # Allows manual execution
+
+jobs:
+  test-ssm-command:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-souteast-2
+
+      - name: Run SSM Command on EC2
+        run: |
+          command_id=$(aws ssm send-command \
+          --document-name "AWS-RunShellScript" \
+          --targets "Key=instanceIds,Values=i-05cf2006e5f697698" \
+          --parameters 'commands=["whoami", "pwd"]' \
+          --region your-region \
+          --query "Command.CommandId" \
+          --output text)
+          echo "Command ID: $command_id"
+          sleep 5  # Give SSM some time to execute
+          
+          aws ssm list-command-invocations \
+            --command-id "$command_id" \
+            --details \
+            --region "ap-souteast-2"
+
+      # - name: Create SSM Document in AWS
+      #   run: |
+      #     aws ssm create-document \
+      #       --name "Deploy-DACPAC-SQLPackage" \
+      #       --document-type "Command" \
+      #       --document-format "JSON" \
+      #       --content file://aws_ssm/deploy_dacpac.json
+
+      # - name: Verify SSM Document Exists
+      #   run: |
+      #     aws ssm list-documents --query "DocumentIdentifiers[?Name=='Deploy-DACPAC-SQLPackage']"
