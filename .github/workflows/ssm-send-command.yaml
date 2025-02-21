@@ -41,7 +41,15 @@ jobs:
             --query "StandardOutputContent" \
             --output text)
 
-          echo "Command Output: $output"
+          user=$(echo "$output" | sed -n '1p')
+          working_dir=$(echo "$output" | sed -n '2p')
+
+          # Print the formatted result
+          echo "=================================="
+          echo "Command ID: $command_id"
+          echo "Current User running in the instance: $user"
+          echo "Current working directory in the instance: $working_dir"
+          echo "=================================="
 
       # - name: Create SSM Document in AWS
       #   run: |
