@@ -24,7 +24,7 @@ jobs:
           --document-name "AWS-RunShellScript" \
           --targets "Key=instanceIds,Values=i-05cf2006e5f697698" \
           --parameters 'commands=["whoami", "pwd"]' \
-          --region your-region \
+          --region ap-southeast-2 \
           --query "Command.CommandId" \
           --output text)
           echo "Command ID: $command_id"
