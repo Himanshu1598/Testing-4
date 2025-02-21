@@ -21,19 +21,27 @@ jobs:
       - name: Run SSM Command on EC2
         run: |
           command_id=$(aws ssm send-command \
-          --document-name "AWS-RunShellScript" \
-          --targets "Key=instanceIds,Values=i-05cf2006e5f697698" \
-          --parameters 'commands=["whoami", "pwd"]' \
-          --region ap-southeast-2 \
-          --query "Command.CommandId" \
-          --output text)
+            --document-name "AWS-RunShellScript" \
+            --targets "Key=instanceIds,Values=i-05cf2006e5f697698" \
+            --parameters 'commands=["whoami", "pwd"]' \
+            --region ap-southeast-2 \
+            --query "Command.CommandId" \
+            --output text)
           echo "Command ID: $command_id"
-          sleep 5  # Give SSM some time to execute
-          
-          aws ssm list-command-invocations \
+          sleep 10  # Wait for execution to complete
+
+          # Retrieve instance ID that ran the command
+          instance_id="i-05cf2006e5f697698"
+
+          # Get output from the command execution
+          output=$(aws ssm get-command-invocation \
             --command-id "$command_id" \
-            --details \
-            --region "ap-southeast-2"
+            --instance-id "$instance_id" \
+            --region ap-southeast-2 \
+            --query "StandardOutputContent" \
+            --output text)
+
+          echo "Command Output: $output"
 
       # - name: Create SSM Document in AWS
       #   run: |
