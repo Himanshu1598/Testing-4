@@ -14,11 +14,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Install Native NuGet CLI for Linux
-      - name: Install NuGet CLI
+      # Download and Install NuGet CLI (Native Linux Binary)
+      - name: Install NuGet CLI Manually
         run: |
-          sudo apt update
-          sudo apt install -y nuget
+          curl -L https://github.com/NuGet/Home/releases/latest/download/nuget -o /usr/local/bin/nuget
+          chmod +x /usr/local/bin/nuget  # Make it executable
+          echo "export PATH=/usr/local/bin:$PATH" >> ~/.bashrc
+          echo "export PATH=/usr/local/bin:$PATH" >> ~/.profile
+          source ~/.bashrc  # Apply the changes
 
       # Verify NuGet CLI is accessible and installed
       - name: Verify NuGet CLI Installation
