@@ -14,8 +14,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Install Mono (needed to run nuget.exe on Linux) if you're using nuget.exe and Mono
-      - name: Install Mono (optional)
+      # Install Mono (needed to run nuget.exe on Linux)
+      - name: Install Mono
         run: |
           sudo apt update
           sudo apt install mono-complete -y
@@ -24,30 +24,21 @@ jobs:
       - name: Download NuGet CLI (nuget.exe)
         run: |
           curl -L https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -o /usr/local/bin/nuget.exe
+          ls -l /usr/local/bin/nuget.exe  # Verify that nuget.exe is downloaded
 
-      # Identify the shell and source the appropriate configuration file
-      - name: Identify shell and source the config
+      # Verify Mono installation and nuget.exe presence
+      - name: Verify Mono and NuGet
         run: |
-          echo "Identifying the shell used by the runner"
-          SHELL_NAME=$(ps -p $$ -o comm=)
-          echo "Shell detected: $SHELL_NAME"
+          mono --version  # Check if Mono is installed correctly
+          ls -l /usr/local/bin/nuget.exe  # Check if nuget.exe exists at the expected location
+
+      # Create an alias for nuget and add it to the shell profile
+      - name: Create alias for nuget in bash
+        run: |
+          echo "alias nuget='mono /usr/local/bin/nuget.exe'" >> ~/.bashrc  # Add alias to .bashrc
+          source ~/.bashrc  # Source to load the alias in current session
+          echo "Alias added: nuget -> mono /usr/local/bin/nuget.exe"
           
-          # Source the appropriate config file based on the shell
-          if [ "$SHELL_NAME" = "bash" ]; then
-            source ~/.bashrc
-          elif [ "$SHELL_NAME" = "zsh" ]; then
-            source ~/.zshrc
-          else
-            source ~/.profile  # Default for other shells like dash
-          fi
-
-      # Set up the alias for nuget using mono (for nuget.exe)
-      - name: Set up alias for nuget (using Mono if needed)
-        run: |
-          echo "alias nuget='mono /usr/local/bin/nuget.exe'" >> ~/.bashrc
-          echo "alias nuget='mono /usr/local/bin/nuget.exe'" >> ~/.zshrc
-          source ~/.bashrc  # Ensure alias is loaded immediately
-
       # Verify NuGet CLI is accessible and installed using nuget help
       - name: Verify NuGet CLI Installation
         run: |
