@@ -32,15 +32,11 @@ jobs:
           mono --version  # Check if Mono is installed correctly
           ls -l /usr/local/bin/nuget.exe  # Check if nuget.exe exists at the expected location
 
-      # Create an alias for nuget and add it to the shell profile
-      - name: Create alias for nuget in bash
+      # Add the alias for nuget and source the shell profile in the same command
+      - name: Add alias for nuget in bash and verify
         run: |
           echo "alias nuget='mono /usr/local/bin/nuget.exe'" >> ~/.bashrc  # Add alias to .bashrc
           source ~/.bashrc  # Source to load the alias in current session
           echo "Alias added: nuget -> mono /usr/local/bin/nuget.exe"
-          
-      # Verify NuGet CLI is accessible and installed using nuget help
-      - name: Verify NuGet CLI Installation
-        run: |
-          source ~/.bashrc  # Ensure alias is loaded in the current shell session
-          nuget help  # Should show the NuGet help menu
+          nuget help  # Run nuget help to verify the installation
+
