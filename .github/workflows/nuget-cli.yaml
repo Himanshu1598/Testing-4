@@ -22,10 +22,10 @@ jobs:
       # Add NuGet CLI to PATH
       - name: Add NuGet CLI to PATH
         run: |
-          $env:Path += ";C:\"
+          $env:Path += ";C:\"  # Add C:\ to PATH
           Write-Host "Updated PATH: $env:Path"
 
-      # Verify NuGet CLI is accessible and installed
+      # Verify NuGet CLI is accessible and installed using full path
       - name: Verify NuGet CLI Installation
         run: |
-          nuget version
+          C:\nuget.exe version  # Use the full path to nuget.exe to check its version
