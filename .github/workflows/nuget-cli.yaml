@@ -19,8 +19,15 @@ jobs:
         run: |
           sudo apt update
           sudo apt install mono-complete -y
+          # Download the Mono Project's GPG key
           sudo rpm --import "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF" || \
           sudo rpm --import "https://download.mono-project.com/repo/xamarin.gpg"
+          
+          # Add the Mono Project's repository
+          sudo dnf config-manager --add-repo https://download.mono-project.com/repo/centos8-stable.repo
+          
+          # Install mono-devel
+          sudo dnf install -y mono-devel
 
       # Download NuGet CLI (nuget.exe)
       - name: Download NuGet CLI (nuget.exe)
