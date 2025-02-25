@@ -19,13 +19,14 @@ jobs:
         run: |
           Invoke-WebRequest -Uri https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -OutFile C:\nuget.exe
 
-      # Add NuGet CLI to PATH
+      # Add NuGet CLI to PATH for the current job
       - name: Add NuGet CLI to PATH
         run: |
-          $env:Path += ";C:\"  # Add C:\ to PATH
+          echo "Adding NuGet CLI to PATH"
+          $env:Path += ";C:\"  # Add C:\ where nuget.exe is located
           Write-Host "Updated PATH: $env:Path"
 
-      # Verify NuGet CLI is accessible and installed using full path
+      # Verify NuGet CLI is accessible and installed using nuget help
       - name: Verify NuGet CLI Installation
         run: |
-          C:\nuget.exe help  # Use 'help' instead of 'version' to check if NuGet is installed
+          nuget help  # Now you can use `nuget` command without specifying the full path
