@@ -14,16 +14,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Download and Install NuGet CLI (Native Linux Binary)
-      - name: Install NuGet CLI Manually
+      # Install Mono (needed to run nuget.exe on Linux)
+      - name: Install Mono
         run: |
-          curl -L https://github.com/NuGet/Home/releases/latest/download/nuget -o /usr/local/bin/nuget
-          chmod +x /usr/local/bin/nuget  # Make it executable
-          echo "export PATH=/usr/local/bin:$PATH" >> ~/.bashrc
-          echo "export PATH=/usr/local/bin:$PATH" >> ~/.profile
-          source ~/.bashrc  # Apply the changes
+          sudo apt update
+          sudo apt install mono-complete -y
 
-      # Verify NuGet CLI is accessible and installed
+      # Download NuGet CLI (nuget.exe)
+      - name: Download NuGet CLI (nuget.exe)
+        run: |
+          curl -L https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -o /usr/local/bin/nuget.exe
+          sudo chmod +x /usr/local/bin/nuget.exe  # Make nuget.exe executable
+
+      # Create a symbolic link for nuget in /usr/local/bin
+      - name: Add NuGet CLI to PATH
+        run: |
+          sudo ln -sf /usr/local/bin/nuget.exe /usr/local/bin/nuget
+          echo "Updated PATH: $PATH"
+
+      # Verify NuGet CLI is accessible and installed using nuget help
       - name: Verify NuGet CLI Installation
         run: |
-          nuget help  # This should work without needing Mono
+          nuget help  # Should show the NuGet help menu
