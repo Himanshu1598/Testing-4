@@ -28,4 +28,4 @@ jobs:
       # Verify NuGet CLI is accessible and installed using full path
       - name: Verify NuGet CLI Installation
         run: |
-          C:\nuget.exe version  # Use the full path to nuget.exe to check its version
+          C:\nuget.exe help  # Use 'help' instead of 'version' to check if NuGet is installed
