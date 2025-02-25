@@ -1,4 +1,4 @@
-name: Install NuGet CLI and Add to PATH
+name: Install NuGet CLI and Add to PATH (Linux)
 
 on:
   push:
@@ -7,26 +7,32 @@ on:
 
 jobs:
   install-nuget:
-    runs-on: windows-latest  # Using Windows runner
+    runs-on: ubuntu-latest  # Using Linux runner (Ubuntu)
 
     steps:
       # Checkout the code from the repository
       - name: Checkout code
         uses: actions/checkout@v2
 
+      # Install Mono (needed to run nuget.exe on Linux)
+      - name: Install Mono
+        run: |
+          sudo apt update
+          sudo apt install mono-complete -y
+
       # Download NuGet CLI (nuget.exe)
       - name: Download NuGet CLI (nuget.exe)
         run: |
-          Invoke-WebRequest -Uri https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -OutFile C:\nuget.exe
+          curl -L https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -o /usr/local/bin/nuget.exe
 
       # Add NuGet CLI to PATH for the current job
       - name: Add NuGet CLI to PATH
         run: |
-          echo "Adding NuGet CLI to PATH"
-          $env:Path += ";C:\"  # Add C:\ where nuget.exe is located
-          Write-Host "Updated PATH: $env:Path"
+          echo "alias nuget='mono /usr/local/bin/nuget.exe'" >> ~/.bashrc
+          source ~/.bashrc
+          echo "Updated PATH: $PATH"
 
       # Verify NuGet CLI is accessible and installed using nuget help
       - name: Verify NuGet CLI Installation
         run: |
-          nuget help  # Now you can use `nuget` command without specifying the full path
+          nuget help  # Should show the NuGet help menu
