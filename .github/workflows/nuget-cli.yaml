@@ -1,0 +1,31 @@
+name: Install NuGet CLI and Add to PATH
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  install-nuget:
+    runs-on: windows-latest  # Using Windows runner
+
+    steps:
+      # Checkout the code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Download NuGet CLI (nuget.exe)
+      - name: Download NuGet CLI (nuget.exe)
+        run: |
+          Invoke-WebRequest -Uri https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -OutFile C:\nuget.exe
+
+      # Add NuGet CLI to PATH
+      - name: Add NuGet CLI to PATH
+        run: |
+          $env:Path += ";C:\"
+          Write-Host "Updated PATH: $env:Path"
+
+      # Verify NuGet CLI is accessible and installed
+      - name: Verify NuGet CLI Installation
+        run: |
+          nuget version
