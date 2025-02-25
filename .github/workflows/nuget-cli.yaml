@@ -24,11 +24,17 @@ jobs:
       - name: Download NuGet CLI (nuget.exe)
         run: |
           curl -L https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -o /usr/local/bin/nuget.exe
-          ls -l /usr/local/bin/nuget.exe  # Verify that nuget.exe is downloaded
+          sudo chmod +x /usr/local/bin/nuget.exe  # Make nuget.exe executable
 
-      # Set up NuGet alias within the same shell session and run nuget help
-      - name: Set up NuGet alias and Verify Installation
+      # Add NuGet CLI to PATH and create alias
+      - name: Add NuGet CLI to PATH
         run: |
-          echo "alias nuget='mono /usr/local/bin/nuget.exe'" >> ~/.bashrc  # Add alias to .bashrc
-          source ~/.bashrc  # Ensure alias is loaded in current shell session
-          nuget help  # Should show the NuGet help menu using the alias
+          echo "alias nuget='mono /usr/local/bin/nuget.exe'" >> ~/.bashrc
+          source ~/.bashrc  # Apply changes to the current shell session
+          echo "Updated PATH: $PATH"
+
+      # Verify NuGet CLI is accessible and installed using nuget help
+      - name: Verify NuGet CLI Installation
+        run: |
+          source ~/.bashrc  # Ensure alias is loaded in the current shell session
+          nuget help  # Should show the NuGet help menu
