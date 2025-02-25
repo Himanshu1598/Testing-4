@@ -1,9 +1,7 @@
 name: Install NuGet CLI and Add to PATH (Linux)
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   install-nuget:
@@ -45,3 +43,9 @@ jobs:
       - name: Verify NuGet CLI Installation
         run: |
           nuget help  # Should show the NuGet help menu
+
+
+0Warning: Failed to open the file /usr/local/bin/nuget.exe: Permission denied
+  0 8756k    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+curl: (23) Failure writing output to destination
+Error: Process completed with exit code 23.
