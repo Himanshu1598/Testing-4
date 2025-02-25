@@ -26,14 +26,14 @@ jobs:
           curl -L https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -o /usr/local/bin/nuget.exe
           ls -l /usr/local/bin/nuget.exe  # Verify that nuget.exe is downloaded
 
-      # Verify Mono installation and nuget.exe presence
-      - name: Verify Mono and NuGet
+      # Add alias to bashrc and source it to make it available
+      - name: Set up NuGet alias
         run: |
-          mono --version  # Check if Mono is installed correctly
-          ls -l /usr/local/bin/nuget.exe  # Check if nuget.exe exists at the expected location
+          echo "alias nuget='mono /usr/local/bin/nuget.exe'" >> ~/.bashrc  # Add alias to .bashrc
+          source ~/.bashrc  # Ensure alias is loaded in current shell session
 
-      # Directly call NuGet with mono instead of using alias
+      # Verify NuGet CLI Installation by using the alias
       - name: Verify NuGet CLI Installation
         run: |
-          mono /usr/local/bin/nuget.exe help  # Run nuget help using mono without alias
+          nuget help  # Should show the NuGet help menu using the alias
 
