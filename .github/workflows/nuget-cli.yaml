@@ -56,3 +56,32 @@ drwxr-xr-x. 2 root root 65 Feb 16 18:12 /usr/local/bin
 
 /opt/actions-runner/_work/_temp/37816fda-fe58-4f0a-ad6a-bd4915d5ca6d.sh: line 1: /usr/local/bin/nuget: cannot execute binary file: Exec format error
 Error: Process completed with exit code 126.
+
+
+Run sudo mkdir -p Himanshu
+  sudo mkdir -p Himanshu
+  nuget install Employee.Invitation.Database.485.0.0 -Source https://artifactory.abc-support.com/artifactory/api/nuget/v3/octopus-dev-local/index.json -OutputDirectory Himanshu -Verbosity detailed
+  shell: /usr/bin/bash -e {0}
+  env:
+    DACPAC_UTILITY_PATH: od-gha-files
+    RUNNER_REGION: us-west-2
+    RUNNER_DEPLOYTRACK_TOKEN: ***
+    ENV_NAME_EXTRACTED: uat
+    AWS_DEFAULT_REGION: us-west-2
+    AWS_REGION: us-west-2
+    AWS_ACCESS_KEY_ID: ***
+    AWS_SECRET_ACCESS_KEY: ***
+    AWS_SESSION_TOKEN: ***
+  
+NuGet Version: 6.13.2.1
+Feeds used:
+  https://artifactory.abc-support.com/artifactory/api/nuget/v3/octopus-dev-local/index.json
+Installing package 'Employee.Invitation.Database.485.0.0' to '/opt/actions-runner/_work/expenses-employee-invitation-api/expenses-employee-invitation-api/Himanshu'.
+  GET https://artifactory.abc-support.com/artifactory/api/nuget/v3/octopus-dev-local/registration-semver2/employee.invitation.database.485.0.0/index.json
+  NotFound https://artifactory.abc-support.com/artifactory/api/nuget/v3/octopus-dev-local/registration-semver2/employee.invitation.database.485.0.0/index.json 140ms
+Unable to find package 'Employee.Invitation.Database.485.0.0'
+NuGet.Commands.CommandException: Unable to find package 'Employee.Invitation.Database.485.0.0'
+  at NuGet.CommandLine.InstallCommand.InstallPackageAsync (System.String packageId, NuGet.Versioning.NuGetVersion version, System.String installPath) [0x0027b] in <3d529e6ba04648abba9478c96f3d864f>:0 
+  at NuGet.CommandLine.Command.Execute () [0x0014a] in <3d529e6ba04648abba9478c96f3d864f>:0 
+  at NuGet.CommandLine.Program.MainCore (System.String workingDirectory, System.String[] args, NuGet.Common.IEnvironmentVariableReader environmentVariableReader) [0x001fb] in <3d529e6ba04648abba9478c96f3d864f>:0 
+Error: Process completed with exit code 1.
