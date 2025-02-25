@@ -45,7 +45,7 @@ jobs:
           nuget help  # Should show the NuGet help menu
 
 
-0Warning: Failed to open the file /usr/local/bin/nuget.exe: Permission denied
-  0 8756k    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
-curl: (23) Failure writing output to destination
-Error: Process completed with exit code 23.
+drwxr-xr-x. 2 root root 65 Feb 16 18:12 /usr/local/bin
+
+/opt/actions-runner/_work/_temp/37816fda-fe58-4f0a-ad6a-bd4915d5ca6d.sh: line 1: /usr/local/bin/nuget: cannot execute binary file: Exec format error
+Error: Process completed with exit code 126.
