@@ -10,3 +10,7 @@
       --document-name "AWS-RunPowerShellScript" \
       --comment "Download S3 files to Windows EC2 instance" \
       --parameters '{"commands":["if (-not (Test-Path \"C:\\\\EmployeeInvitation\")) { New-Item -ItemType Directory -Force -Path \"C:\\\\EmployeeInvitation\" }","aws s3 cp s3://'$S3_BUCKET'/EmployeeInvitation/ \"C:\\\\EmployeeInvitation\" --recursive"],"environmentVariables":[{"name":"S3_BUCKET","value":"'$S3_BUCKET'"}]}'
+
+
+Parameter validation failed:
+Invalid type for parameter Parameters.environmentVariables[0], value: OrderedDict({'name': 'S3_BUCKET', 'value': 'mandeeptest1'}), type: <class 'collections.OrderedDict'>, valid types: <class 'str'>
