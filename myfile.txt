@@ -1,20 +1,20 @@
-- name: Verify files on Windows EC2 instance
+- name: Delete `C:\EmployeeInvitation` if it exists on Windows EC2
   run: |
     INSTANCE_ID="i-01a305a3211234"  # Replace with your EC2 instance ID
-    TARGET_DIRECTORY="C:\\EmployeeInvitation"  # Windows path with double backslashes
 
-    echo "Verifying if files exist at $TARGET_DIRECTORY on EC2 instance..."
+    echo "Checking and deleting 'C:\EmployeeInvitation' on EC2 instance if it exists..."
 
     aws ssm send-command \
       --instance-ids "$INSTANCE_ID" \
       --document-name "AWS-RunPowerShellScript" \
-      --comment "Check if files were downloaded" \
+      --comment "Delete EmployeeInvitation directory if it exists" \
       --parameters commands='[
         "if (Test-Path \"C:\\EmployeeInvitation\") { 
-          Write-Host \"Directory Exists: C:\\EmployeeInvitation\";
-          Get-ChildItem \"C:\\EmployeeInvitation\"
+          Write-Host \"Directory exists. Deleting...\";
+          Remove-Item -Path \"C:\\EmployeeInvitation\" -Recurse -Force;
+          Write-Host \"Directory Deleted.\";
         } else { 
-          Write-Host \"Directory not found\" 
+          Write-Host \"Directory not found. Nothing to delete.\";
         }"
       ]' \
       --timeout-seconds 600 \
