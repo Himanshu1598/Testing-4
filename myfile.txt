@@ -1,20 +1,17 @@
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "s3:ListBucket"
-            ],
-            "Resource": "arn:aws:s3:::your-bucket-name"
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "s3:GetObject",
-                "s3:PutObject"
-            ],
-            "Resource": "arn:aws:s3:::your-bucket-name/*"
-        }
-    ]
-}
+- name: Run SSM command to download from S3
+        run: |
+          INSTANCE_ID="i-01a305a3211212312"  # Replace with your EC2 instance ID
+          S3_BUCKET="mandeeptest1"
+          TARGET_DIRECTORY="C:\\EmployeeInvitation"  # Windows file path with double-backslashes
+
+          # Send the command via SSM to download files from S3
+          aws ssm send-command \
+            --instance-ids $INSTANCE_ID \
+            --document-name "AWS-RunPowerShellScript" \
+            --comment "Download S3 files to Windows EC2 instance" \
+            --parameters 'commands=["if (-not (Test-Path \"C:\\EmployeeInvitation\")) { New-Item -ItemType Directory -Force -Path \"C:\\EmployeeInvitation\" }","aws s3 cp s3://$S3_BUCKET/EmployeeInvitation/ \"C:\\EmployeeInvitation\" --recursive"]'
+
+Getting the below error
+fatal error: Parameter validation failed:
+
+Invalid bucket name "": Bucket name must match the regex "^[a-zA-Z0-9.\-_]{1,255}$" or be an ARN matching the regex "^arn:(aws).*:(s3|s3-object-lambda):[a-z\-0-9]*:[0-9]{12}:accesspoint[/:][a-zA-Z0-9\-.]{1,63}$|^arn:(aws).*:s3-outposts:[a-z\-0-9]+:[0-9]{12}:outpost[/:][a-zA-Z0-9\-]{1,63}[/:]accesspoint[/:][a-zA-Z0-9\-]{1,63}$"
