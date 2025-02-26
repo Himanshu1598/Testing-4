@@ -1,34 +1,23 @@
-# Checking whether files are pulled correctly or not.
-      - name: Verify files on Windows EC2 instance
-        run: |
-          INSTANCE_ID="i-01a305a3211234"  # Replace with your EC2 instance ID
-          TARGET_DIRECTORY="C:\\EmployeeInvitation"  # Windows file path with double-backslashes
+- name: Verify files on Windows EC2 instance
+  run: |
+    INSTANCE_ID="i-01a305a3211234"  # Replace with your EC2 instance ID
+    TARGET_DIRECTORY="C:\\EmployeeInvitation"  # Windows path with double backslashes
 
-          # Check if the files exist and print the contents of the directory
-          echo "Verifying if files exist at $TARGET_DIRECTORY on EC2 instance..."
+    echo "Verifying if files exist at $TARGET_DIRECTORY on EC2 instance..."
 
-          # Send SSM command to list the files and print the directory contents on the EC2 instance
-          aws ssm send-command \
-            --instance-ids $INSTANCE_ID \
-            --document-name "AWS-RunPowerShellScript" \
-            --comment "Check if files were downloaded" \
-            --parameters 'commands=["if (Test-Path $TARGET_DIRECTORY) { Get-ChildItem $TARGET_DIRECTORY; Get-Location } else { Write-Host \"Directory not found\" }"]'
-
-
-
-
-Test-Path : Cannot bind argument to parameter 'Path' because it is null.
-
-At C:\ProgramData\Amazon\SSM\InstanceData\i-01a305a3211234\document\orchestration\1afc9942-e41f-4b8a-8717-f9bf09d914
-
-f8\awsrunPowerShellScript\0.awsrunPowerShellScript\_script.ps1:1 char:15
-
-+ if (Test-Path $TARGET_DIRECTORY) { Get-ChildItem $TARGET_DIRECTORY; G ...
-
-+ ~~~~~~~~~~~~~~~~~
-
-+ CategoryInfo : InvalidData: (:) [Test-Path], ParameterBindingValidationException
-
-+ FullyQualifiedErrorId : ParameterArgumentValidationErrorNullNotAllowed,Microsoft.PowerShell.Commands.TestPathCom
-
-mand
+    aws ssm send-command \
+      --instance-ids "$INSTANCE_ID" \
+      --document-name "AWS-RunPowerShellScript" \
+      --comment "Check if files were downloaded" \
+      --parameters commands='[
+        "if (Test-Path \"C:\\EmployeeInvitation\") { 
+          Write-Host \"Directory Exists: C:\\EmployeeInvitation\";
+          Get-ChildItem \"C:\\EmployeeInvitation\"
+        } else { 
+          Write-Host \"Directory not found\" 
+        }"
+      ]' \
+      --timeout-seconds 600 \
+      --max-concurrency "50" \
+      --max-errors "0" \
+      --region us-west-2  # Change this to your AWS region
