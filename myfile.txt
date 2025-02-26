@@ -4,6 +4,11 @@
     S3_BUCKET="mandeeptest1"
     TARGET_DIRECTORY="C:\\EmployeeInvitation"  # Windows file path with double-backslashes
 
+    # Debug JSON string
+    - name: Debug JSON String
+      run: |
+        echo '{"commands":["if (-not (Test-Path \"C:\\\\EmployeeInvitation\")) { New-Item -ItemType Directory -Force -Path \"C:\\\\EmployeeInvitation\" }","aws s3 cp s3://'$S3_BUCKET'/EmployeeInvitation/ \"C:\\\\EmployeeInvitation\" --recursive"],"environmentVariables":[{"name":"S3_BUCKET","value":"'$S3_BUCKET'"}]}'
+
     # Send the command via SSM to download files from S3
     aws ssm send-command \
       --instance-ids $INSTANCE_ID \
