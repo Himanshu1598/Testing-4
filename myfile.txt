@@ -1,19 +1,12 @@
 - name: Run SSM command to download from S3
-        run: |
-          INSTANCE_ID="i-01a305a321b8e8a07"  # Replace with your EC2 instance ID
-          S3_BUCKET="mandeeptest1"
-          TARGET_DIRECTORY="C:\\EmployeeInvitation"  # Windows file path with double-backslashes
+  run: |
+    INSTANCE_ID="i-01a305a321b8e1234"  # Replace with your EC2 instance ID
+    S3_BUCKET="mandeeptest1"
+    TARGET_DIRECTORY="C:\\EmployeeInvitation"  # Windows file path with double-backslashes
 
-          # Send the command via SSM to download files from S3
-          aws ssm send-command \
-            --instance-ids $INSTANCE_ID \
-            --document-name "AWS-RunPowerShellScript" \
-            --comment "Download S3 files to Windows EC2 instance" \
-            --parameters "commands=[\"if (-not (Test-Path 'C:\\\\EmployeeInvitation')) { New-Item -ItemType Directory -Force -Path 'C:\\\\EmployeeInvitation' }\",\"aws s3 cp s3://$S3_BUCKET/EmployeeInvitation/ 'C:\\\\EmployeeInvitation' --recursive\"],environmentVariables=[{\"name\":\"S3_BUCKET\",\"value\":\"$S3_BUCKET\"}]"
-
-
-
-
-Error parsing parameter '--parameters': Expected: '=', received: '"' for input:
-commands=["if (-not (Test-Path 'C:\\EmployeeInvitation')) { New-Item -ItemType Directory -Force -Path 'C:\\EmployeeInvitation' }","aws s3 cp s3://mandeeptest1/EmployeeInvitation/ 'C:\\EmployeeInvitation' --recursive"],environmentVariables=[{"name":"S3_BUCKET","value":"mandeeptest1"}]
-                                                                                                                                                                                                                                                 ^
+    # Send the command via SSM to download files from S3
+    aws ssm send-command \
+      --instance-ids $INSTANCE_ID \
+      --document-name "AWS-RunPowerShellScript" \
+      --comment "Download S3 files to Windows EC2 instance" \
+      --parameters '{"commands":["if (-not (Test-Path \"C:\\\\EmployeeInvitation\")) { New-Item -ItemType Directory -Force -Path \"C:\\\\EmployeeInvitation\" }","aws s3 cp s3://'$S3_BUCKET'/EmployeeInvitation/ \"C:\\\\EmployeeInvitation\" --recursive"],"environmentVariables":[{"name":"S3_BUCKET","value":"'$S3_BUCKET'"}]}'
