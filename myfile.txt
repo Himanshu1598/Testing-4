@@ -1,23 +1,32 @@
-- name: Delete `C:\EmployeeInvitation` if it exists on Windows EC2
-  run: |
-    INSTANCE_ID="i-01a305a3211234"  # Replace with your EC2 instance ID
+# This script is used to compare the database deployment script with default one to make sure that releases with actual change will require manual intervention
+# This script is based https://confluence.teamabc.com/display/PRAC/How+To%3A+Setup+an+Octopus+project+to+automate+SQL+Deployment+Approval+Step manual
 
-    echo "Checking and deleting 'C:\EmployeeInvitation' on EC2 instance if it exists..."
+$NoChangesReport = '<?xml version="1.0" encoding="utf-8"?><DeploymentReport xmlns="http://schemas.microsoft.com/sqlserver/dac/DeployReport/2012/02"><Alerts /></DeploymentReport>'
 
-    aws ssm send-command \
-      --instance-ids "$INSTANCE_ID" \
-      --document-name "AWS-RunPowerShellScript" \
-      --comment "Delete EmployeeInvitation directory if it exists" \
-      --parameters commands='[
-        "if (Test-Path \"C:\\EmployeeInvitation\") { 
-          Write-Host \"Directory exists. Deleting...\";
-          Remove-Item -Path \"C:\\EmployeeInvitation\" -Recurse -Force;
-          Write-Host \"Directory Deleted.\";
-        } else { 
-          Write-Host \"Directory not found. Nothing to delete.\";
-        }"
-      ]' \
-      --timeout-seconds 600 \
-      --max-concurrency "50" \
-      --max-errors "0" \
-      --region us-west-2  # Change this to your AWS region
+TRY
+{
+    # (re)setting  the ApprovalRequired variable to null as Octopus stores and reuse the value during redeployment.
+    Set-OctopusVariable -name "ApprovalRequired" -value $null
+
+	$ArtifactDownloadFilePath = $OctopusParameters["ArtifactDownloadFilePath"]
+	$OctopusEnvironmentName = $OctopusParameters["Octopus.Environment.Name"]
+	$DatabaseName = $OctopusParameters["DatabaseName"]
+	$OctopusReleaseNumber = $OctopusParameters["Octopus.Release.Number"]
+    $TargetServers = $OctopusParameters["TargetServers"]
+    
+    $deployReportContent = Get-Content "$ArtifactDownloadFilePath\deployreports\$TargetServers.$OctopusEnvironmentName.$DatabaseName.$OctopusReleaseNumber.deployreport.xml"
+
+    IF ( $NoChangesReport -eq $deployReportContent) {
+        write-output "Deploy report matches at least one of the auto approved XMLs. DB deploy approval step can be skipped."
+        Set-OctopusVariable -name "ApprovalRequired" -value "False"
+    } else {
+        write-output "Deploy Report does not match any of the auto approved XMLs. DB deploy approval required."
+        Set-OctopusVariable -name "ApprovalRequired" -value "True"
+    }
+}
+CATCH
+{
+    $ErrorMessage = $_.Exception.Message
+    WRITE-WARNING "ERROR in processing the artifact(s) : $ErrorMessage "
+    Set-OctopusVariable -name "ApprovalRequired" -value "True"
+}
