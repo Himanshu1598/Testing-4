@@ -30,3 +30,29 @@ CATCH
     WRITE-WARNING "ERROR in processing the artifact(s) : $ErrorMessage "
     Set-OctopusVariable -name "ApprovalRequired" -value "True"
 }
+
+
+Action - DeployReport, Script, Publish
+DacpacFilePath - "C:\abc\releases\databases\EmployeeInvitation\Employee.Invitation.Database.Build.dacpac"
+ArtifactDownloadFilePath - "C:\abc\releases\databases\EmployeeInvitation"
+DatabaseName - EmployeeInvitation
+PublishProfileFilePath - "C:\abc\releases\databases\EmployeeInvitation\abc-uat.publish.xml"
+PublishProfileFileName - abc-uat.publish.xml
+TargetServers -  employeeinvitation.db.livestage6.test.abc.com
+DeployReportFilePath - "C:\abc\releases\databases\EmployeeInvitation\deployreports\LS6 Global - 01.EmployeeInvitation.#{Octopus.Release.Number}.deployreport.xml"
+SqlPackagePath - C:\Program Files\Microsoft SQL Server\150\DAC\bin\SqlPackage.exe
+SQLPackageDeployProperties - {"AdditionalDeploymentContributorArguments":"CreateIndexOperationalPropsModifier.Online=ON;CreateIndexOperationalPropsModifier.MAXDOP=2"}
+AddArtifactsToRelease - $AddArtifactsToRelease  -eq "true"
+UsingClusterNames - $UsingClusterNames -eq "true"
+UseServiceAccount -$UseServiceAccount -eq "true"
+UseMultiSubnetFailover - $UseMultiSubnetFailover -eq "true"
+
+
+ServiceAccountUserName - These are not getting used we need to pass the actual username and password.
+ServiceAccountPassword - These are not getting used we need to pass the actual username and password.
+SqlCmdVariables - Didnt get any reference but it is present as function in (lib/CloudDataSQLPackageDeploy/script.ps1)
+SqlPackageParameters - Didnt get any reference but it is present as function in (lib/CloudDataSQLPackageDeploy/script.ps1) 
+
+
+OctopusEnvironmentName - LS6 Global - 01
+OctopusReleaseNumber - 
