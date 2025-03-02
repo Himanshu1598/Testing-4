@@ -1,321 +1,116 @@
-# This script is used to compare the database deployment script with default one to make sure that releases with actual change will require manual intervention
-# This script is based https://confluence.teamabc.com/display/PRAC/How+To%3A+Setup+an+Octopus+project+to+automate+SQL+Deployment+Approval+Step manual
+---
+name: 'SSM: DACPAC Utility'
+inputs:
+  instance_name:
+    description: "The name of the EC2 instance where the script will be invoked."
+    required: true
+  aws_region:
+    description: "AWS region where the EC2 instance is located."
+    required: true
+  script_path:
+    description: "Path to the DACPAC utility script in the repository."
+    required: true
+  config_path:
+    description: "Path to the UAT configuration file in the repository."
+    required: true
+  timeout_seconds:
+    description: "Time limit for script execution."
+    required: false
+    default: "60"
+  cli_read_timeout_seconds:
+    description: "Maximum socket read time in seconds."
+    required: false
+    default: "900"
 
-$NoChangesReport = '<?xml version="1.0" encoding="utf-8"?><DeploymentReport xmlns="http://schemas.microsoft.com/sqlserver/dac/DeployReport/2012/02"><Alerts /></DeploymentReport>'
+runs:
+  using: composite
+  steps:
+    - name: "Retrieve Instance ID from Name"
+      shell: bash
+      run: |
+        echo "Finding the target EC2 instance..."
+        instance_id=$(aws ec2 describe-instances \
+          --region "${{ inputs.aws_region }}" \
+          --filters "Name=tag:Name,Values=${{ inputs.instance_name }}" "Name=instance-state-name,Values=running" \
+          --query "Reservations[0].Instances[0].InstanceId" \
+          --output text)
 
-TRY
-{
-    # (re)setting  the ApprovalRequired variable to null as Octopus stores and reuse the value during redeployment.
-    Set-OctopusVariable -name "ApprovalRequired" -value $null
+        if [[ -z "$instance_id" || "$instance_id" == "None" ]]; then
+          echo "Error: No running instances found with name '${{ inputs.instance_name }}'"
+          exit 1
+        fi
+        echo "Instance ID: $instance_id"
+        echo "INSTANCE_ID=$instance_id" >> $GITHUB_ENV
 
-	$ArtifactDownloadFilePath = $OctopusParameters["ArtifactDownloadFilePath"]
-	$OctopusEnvironmentName = $OctopusParameters["Octopus.Environment.Name"]
-	$DatabaseName = $OctopusParameters["DatabaseName"]
-	$OctopusReleaseNumber = $OctopusParameters["Octopus.Release.Number"]
-    $TargetServers = $OctopusParameters["TargetServers"]
-    
-    $deployReportContent = Get-Content "$ArtifactDownloadFilePath\deployreports\$TargetServers.$OctopusEnvironmentName.$DatabaseName.$OctopusReleaseNumber.deployreport.xml"
+    - name: "Transfer DACPAC Script & UAT Config to Target"
+      shell: bash
+      run: |
+        echo "Checking if required files exist..."
+        if [[ ! -f "${{ inputs.script_path }}" || ! -f "${{ inputs.config_path }}" ]]; then
+          echo "Error: Script or config file not found."
+          exit 1
+        fi
 
-    IF ( $NoChangesReport -eq $deployReportContent) {
-        write-output "Deploy report matches at least one of the auto approved XMLs. DB deploy approval step can be skipped."
-        Set-OctopusVariable -name "ApprovalRequired" -value "False"
-    } else {
-        write-output "Deploy Report does not match any of the auto approved XMLs. DB deploy approval required."
-        Set-OctopusVariable -name "ApprovalRequired" -value "True"
-    }
-}
-CATCH
-{
-    $ErrorMessage = $_.Exception.Message
-    WRITE-WARNING "ERROR in processing the artifact(s) : $ErrorMessage "
-    Set-OctopusVariable -name "ApprovalRequired" -value "True"
-}
+        echo "Transferring files to target EC2 instance..."
+        remote_script_file="C:/Temp/dacpac-utility.ps1"
+        remote_uat_file="C:/Temp/uat.ps1"
 
+        command_id=$(aws ssm send-command \
+          --region "${{ inputs.aws_region }}" \
+          --instance-ids "$INSTANCE_ID" \
+          --document-name "AWS-RunPowerShellScript" \
+          --parameters commands="[
+            \"Write-Host 'Creating Temp Directory...'\",
+            \"New-Item -Path C:/Temp -ItemType Directory -Force\",
+            \"[Text.Encoding]::Utf8.GetString([Convert]::FromBase64String('$(base64 -w 0 "${{ inputs.script_path }}")')) | Out-File '$remote_script_file'\",
+            \"[Text.Encoding]::Utf8.GetString([Convert]::FromBase64String('$(base64 -w 0 "${{ inputs.config_path }}")')) | Out-File '$remote_uat_file'\",
+            \"Write-Host 'Scripts transferred successfully'\"
+          ]" \
+          --timeout-seconds 300 \
+          --max-concurrency "50" \
+          --max-errors "0" \
+          --query "Command.CommandId" \
+          --output text)
 
-Action - DeployReport, Script, Publish
-DacpacFilePath - "C:\abc\releases\databases\EmployeeInvitation\Employee.Invitation.Database.Build.dacpac"
-ArtifactDownloadFilePath - "C:\abc\releases\databases\EmployeeInvitation"
-DatabaseName - EmployeeInvitation
-PublishProfileFilePath - "C:\abc\releases\databases\EmployeeInvitation\abc-uat.publish.xml"
-PublishProfileFileName - abc-uat.publish.xml
-TargetServers -  employeeinvitation.db.livestage6.test.abc.com
-DeployReportFilePath - "C:\abc\releases\databases\EmployeeInvitation\deployreports\LS6 Global - 01.EmployeeInvitation.#{Octopus.Release.Number}.deployreport.xml"
-SqlPackagePath - C:\Program Files\Microsoft SQL Server\150\DAC\bin\SqlPackage.exe
-SQLPackageDeployProperties - {"AdditionalDeploymentContributorArguments":"CreateIndexOperationalPropsModifier.Online=ON;CreateIndexOperationalPropsModifier.MAXDOP=2"}
-AddArtifactsToRelease - $AddArtifactsToRelease  -eq "true"
-UsingClusterNames - $UsingClusterNames -eq "true"
-UseServiceAccount -$UseServiceAccount -eq "true"
-UseMultiSubnetFailover - $UseMultiSubnetFailover -eq "true"
+        echo "TRANSFER_FILES_COMMAND_ID=$command_id" >> $GITHUB_ENV
+        aws ssm wait command-executed --region "${{ inputs.aws_region }}" --command-id "$command_id" --instance-id "$INSTANCE_ID"
 
+    - name: "Verify File Transfer on Target Instance"
+      shell: bash
+      run: |
+        command_id=$(aws ssm send-command \
+          --region "${{ inputs.aws_region }}" \
+          --instance-ids "$INSTANCE_ID" \
+          --document-name "AWS-RunPowerShellScript" \
+          --parameters commands="[
+            \"if (Test-Path 'C:/Temp/dacpac-utility.ps1') { Write-Host 'dacpac-utility.ps1 exists' } else { Write-Host 'ERROR: dacpac-utility.ps1 missing!'; exit 1 }\",
+            \"if (Test-Path 'C:/Temp/uat.ps1') { Write-Host 'uat.ps1 exists' } else { Write-Host 'ERROR: uat.ps1 missing!'; exit 1 }\"
+          ]" \
+          --timeout-seconds 300 \
+          --max-concurrency "50" \
+          --max-errors "0" \
+          --query "Command.CommandId" \
+          --output text)
 
-ServiceAccountUserName - These are not getting used we need to pass the actual username and password.
-ServiceAccountPassword - These are not getting used we need to pass the actual username and password.
-SqlCmdVariables - Didnt get any reference but it is present as function in (lib/CloudDataSQLPackageDeploy/script.ps1)
-SqlPackageParameters - Didnt get any reference but it is present as function in (lib/CloudDataSQLPackageDeploy/script.ps1) 
+        echo "VERIFY_FILE_TRANSFER_COMMAND_ID=$command_id" >> $GITHUB_ENV
+        aws ssm wait command-executed --region "${{ inputs.aws_region }}" --command-id "$command_id" --instance-id "$INSTANCE_ID"
 
+    - name: "Preview UAT Configuration File (uat.ps1)"
+      shell: bash
+      run: |
+        command_id=$(aws ssm send-command \
+          --region "${{ inputs.aws_region }}" \
+          --instance-ids "$INSTANCE_ID" \
+          --document-name "AWS-RunPowerShellScript" \
+          --parameters commands="[
+            \"Write-Host 'Displaying uat.ps1 Contents...'\",
+            \"Get-Content 'C:/Temp/uat.ps1'\"
+          ]" \
+          --timeout-seconds 300 \
+          --max-concurrency "50" \
+          --max-errors "0" \
+          --query "Command.CommandId" \
+          --output text)
 
-OctopusEnvironmentName - LS6 Global - 01
-OctopusReleaseNumber - 
-
----------------------------
-
-function New-SqlPackageCommand
-{
-    <#
-        .DESCRIPTION
-        Builds a SQL Package command to be invoked, based on the Action chosen.
-
-        .PARAMETER Action
-        (Required) List of valid sqlpackage.exe actions to perform.
-
-        .PARAMETER DacpacFilePath
-        (Required) The fully qualified path and file name of the DACPAC to
-        publish.
-
-        .PARAMETER PublishProfileFilePath
-        (Required) The fully qualified path and file name of the Publish
-        Profile to be applied against the supplied DACPAC.
-
-        .PARAMETER OutputFilePath
-        (Optional) The fully qualified path and file name of the Deploy Report
-        to be generated.
-
-        .PARAMETER SqlCmdVariables
-        (Optional) Hashtable containing key/value pairs of SQLCMD variables.
-
-		.PARAMETER SqlPackageParameters
-		(Optional) Hashtable containing key/value pairs of SqlPackage parameters.
-        Any key/value pair supplied in this parameter will override any
-        key/value pair set in the Publish Profile.
-
-		.PARAMETER SqlPackageProperties
-		(Optional) Hashtable containing key/value pairs of SqlPackage properties.
-        Any key/value pair supplied in this parameter will override any
-        key/value pair set in the Publish Profile.
-
-        .PARAMETER ConnectionString
-        (Optional) Supply to override any connection string settings inside the
-        supplied Publish Profile.
-
-        .EXAMPLE
-        New-SqlPackageCommand
-            -Action Publish
-            -DacpacFilePath C:\Temp\AdventureWorks2012.dacpac
-            -PublishProfileFilePath C:\Temp\AdventureWorks2012.publish.xml
-
-    #>
-
-    [CmdletBinding()]
-    param
-    (
-        [Parameter(Mandatory=$true)][ValidateSet('Script', 'DeployReport', 'Extract', 'Publish')][string]$Action,
-        [Parameter(Mandatory=$true)][string]$DacpacFilePath,
-        [Parameter(Mandatory=$true)][string]$PublishProfileFilePath,
-        [string]$OutputFilePath,
-        [AllowNull()][hashtable]$SqlCmdVariables = @{},
-        [AllowNull()][hashtable]$SqlPackageParameters = @{},
-        [AllowNull()][hashtable]$SqlPackageProperties = @{},
-        [string]$ConnectionString = ''
-    )
-
-    trap { throw $_ }
-
-    $cmd = "/Action:$Action /Profile:`"$PublishProfileFilePath`" "
-
-    $cmd += Format-SqlCmdVariables -SqlCmdVariables $SqlCmdVariables
-    $cmd += Format-SqlPackageParameters -Parameters $SqlPackageParameters
-    $cmd += Format-SqlPackageProperties -Properties $SqlPackageProperties
-
-    $dacpacFilePathSwitch = "/SourceFile:`"$DacpacFilePath`" "
-    if ($Action -eq 'Extract')
-    {
-        $dacpacFilePathSwitch = "/TargetFile:`"$DacpacFilePath`" "
-    }
-    $cmd += $dacpacFilePathSwitch
-
-    if (![string]::IsNullOrEmpty($ConnectionString))
-    {
-        $customConnectionString = "/TargetConnectionString:`"$ConnectionString`""
-        if($Action -eq 'Extract')
-        {
-            $customConnectionString = "/SourceConnectionString:`"$ConnectionString`""
-        }
-        $cmd += "$customConnectionString "
-    }
-
-    if (($Action -eq 'Script' -or $Action -eq 'DeployReport') -and ![string]::IsNullOrEmpty($OutputFilePath))
-    {
-        $cmd += "/OutputPath:`"$OutputFilePath`" "
-    }
-
-    return $cmd
-}
-
-function Get-LatestSqlPackageVersion
-{
-    <#
-        .DESCRIPTION
-        Returns the latest version of sqlpackage.exe by searching every
-        local hard drive on the executing computer. In the event a path
-        to a version of sqlpackage.exe is supplied, it will simply
-        return that instead.
-
-        .PARAMETER ApplicationFilePath
-        (Optional) The fully qualified path and file name of the version of
-        sqlpackage.exe to use. If not supplied the executing computer will be
-        searched for the latest version of sqlpackage.exe to use instead.
-
-        .EXAMPLE
-        Get-LatestSqlPackageVersion
-    #>
-
-    [CmdletBinding()]
-    param
-    (
-        [AllowNull()][string]$ApplicationFilePath
-    )
-
-    if ([string]::IsNullOrEmpty($ApplicationFilePath) -or !(Test-Path -Path $ApplicationFilePath))
-    {
-        [string[]]$LocalHardDrives = @()
-        (Get-WmiObject -Query "SELECT DeviceID FROM win32_logicaldisk WHERE DriveType = '3'" `
-            | Select-Object @{l='DriveLetter';e={$_.DeviceID + '\'}}).DriveLetter `
-            | ForEach-Object {$LocalHardDrives += $_}
-
-        $newestVersion = (Get-ChildItem -Path 'C:\Program Files\Microsoft SQL Server\' -Filter sqlpackage.exe -Recurse `
-            | Get-Item | Select-Object -Expand VersionInfo `
-            | Sort-Object ProductVersion -Descending `
-            | Select-Object -First 1).FileName
-
-        return $newestVersion
-    }
-    else
-    {
-        return $ApplicationFilePath
-    }
-}
-
-function Format-SqlCmdVariables
-{
-    <#
-        .DESCRIPTION
-        Takes a key/value pair of SQLCMD variables and converts them to
-        sqlpackage.exe switch syntax of /Variables:KEY=NAME. Each key/value
-        pair is added to a string collection.
-
-        .PARAMETER SqlCmdVariables
-        (Required) Hashtable containing key/value pairs of SQLCMD variables.
-
-        .EXAMPLE
-        Format-SqlCmdVariables -SqlCmdVariables @{RedeployJobs='Yes'; VersionNumber='2.0.4'}
-    #>
-
-    [CmdletBinding()]
-    param
-    (
-        [AllowNull()][Parameter(Mandatory=$true)][hashtable]$SqlCmdVariables
-    )
-
-    trap { throw $_ }
-
-    if($SqlCmdVariables -eq $null) { return '' }
-
-    [string]$result = ''
-    foreach($variable in $SqlCmdVariables.GetEnumerator())
-    {
-        $result += "/Variables:$($variable.Name)='$($variable.Value)' "
-    }
-
-    return $result
-}
-
-function Format-SqlPackageParameters
-{
-    <#
-    .DESCRIPTION
-    For a given hashtable collection where the key is the parameter name
-    and the value is the setting, this function will build out a string of
-    valid sqlpackage syntax for properties, /{ParameterName}:{Value}
-
-    .PARAMETER Parameters
-    (Required) Hashtable containing key/value pairs of sqlpackage.exe
-    parameters. The Key represents the parameter name and the value
-    represents the setting for the parameter. For example, if you want
-    to do /TargetTimeout:15, you would pass to this function
-    @{TargetTimeout=15;}
-
-    .EXAMPLE
-    Format-SqlPackageParameters -Parameters @{TargetTimeout=15; TargetServerName='XXXX-XXXXXX';}
-    #>
-
-    [CmdletBinding()]
-    param
-    (
-        [AllowNull()][Parameter(Mandatory=$true)][hashtable]$Parameters
-    )
-
-    trap { throw $_ }
-
-    $result = ''
-    if($Parameters -ne $null)
-    {
-        foreach($variable in $Parameters.GetEnumerator())
-        {
-            if ((($variable.Value -is [int]) -eq $true) -or (($variable.Value -is [bool]) -eq $true))
-            {
-                $result += "/$($variable.Name):$($variable.Value) "
-            }
-            else
-            {
-                $result += "/$($variable.Name):'$($variable.Value)' "
-            }
-        }
-    }
-
-    return $result
-}
-
-function Format-SqlPackageProperties
-{
-    <#
-        .DESCRIPTION
-        For a given hashtable collection where the key is the property name and
-        the value is the setting, this function will build out a string of
-        valid sqlpackage syntax for properties, /p:{PropertyName}={Value}
-
-        .PARAMETER Properties
-        (Required) Hashtable containing key/value pairs of sqlpackage.exe
-        properties. The Key represents the property name and the value
-        represents the setting for the property. For example, if you want
-        to do /p:CommandTimeout=60, you would pass to this function
-        @{CommandTimeout=60;}
-
-        .EXAMPLE
-        Format-SqlPackageProperties -Properties @{CommandTimeout=60; IgnoreFillFactor='True';}
-    #>
-
-    [CmdletBinding()]
-    param
-    (
-        [AllowNull()][Parameter(Mandatory=$true)][hashtable]$Properties
-    )
-
-    trap { throw $_ }
-    [string]$result = ''
-    if ($Properties -ne $null)
-    {
-        foreach($variable in $Properties.GetEnumerator())
-        {
-            if ((($variable.Value -is [int]) -eq $true) -or (($variable.Value -is [bool]) -eq $true))
-            {
-                $result += "/p:$($variable.Name)=$($variable.Value) "
-            }
-            else
-            {
-                $result += "/p:$($variable.Name)='$($variable.Value)' "
-            }
-        }
-    }
-
-    return $result
-}
+        echo "PREVIEW_CONFIG_COMMAND_ID=$command_id" >> $GITHUB_ENV
+        aws ssm wait command-executed --region "${{ inputs.aws_region }}" --command-id "$command_id" --instance-id "$INSTANCE_ID"
